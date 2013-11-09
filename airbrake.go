@@ -59,7 +59,7 @@ func NewBrake(key string, name string, config *Config) *Brake {
 // example: brake.Error("EOF", "could not read from file")
 func (b *Brake) Error(tipe string, msg string) {
 	n := &notice{
-		Error: &Error{
+		Error: &airError{
 			Type:    tipe,
 			Message: msg,
 		},
@@ -159,7 +159,7 @@ type notice struct {
 	// Environment (where did this happen?)
 	Environment *environment `xml:"server-environment"`
 	// Error
-	Error *Error `xml:"error"`
+	Error *airError `xml:"error"`
 	// Backtrace (stack)
 	Backtrace *backtrace `xml:"backtrace"`
 	// Request (probably http stuff)
@@ -194,8 +194,8 @@ type environment struct {
 	Version string `xml:"app-version,omitempty"`
 }
 
-// Error contains the error information
-type Error struct {
+// airError contains the error information
+type airError struct {
 	// Required. The class name or type of error that occurred.
 	Type string `xml:"class"`
 	// Optional. A short message describing the error that occurred.
