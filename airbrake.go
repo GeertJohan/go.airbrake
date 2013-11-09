@@ -77,7 +77,7 @@ func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
 	// setup notice
 	not.Version = noticeVersion
 	not.APIKey = b.apiKey
-	not.Notifier = DefaultNotifier
+	not.Notifier = Notifier
 	not.Environment = b.environment
 
 	// write notice xml to buffer
@@ -155,7 +155,7 @@ type notice struct {
 	// The API key can be found by viewing the edit project form on the Airbrake site.
 	APIKey string `xml:"api-key"`
 	// Notifier (client)
-	Notifier *Notifier `xml:"notifier"`
+	Notifier *notifier `xml:"notifier"`
 	// Environment (where did this happen?)
 	Environment *environment `xml:"server-environment"`
 	// Error
@@ -167,7 +167,7 @@ type notice struct {
 }
 
 // Notifier describes the application or library that sends an error to airbrake
-type Notifier struct {
+type notifier struct {
 	// Required. The name of the notifier client submitting the request, such as "hoptoad4j" or "rack-hoptoad."
 	Name string `xml:"name"`
 	// Required. The version number of the notifier client submitting the request.
@@ -178,7 +178,7 @@ type Notifier struct {
 
 // DefaultNotifier holds information about this go package
 // these values are exported so you can override them if you like
-var DefaultNotifier = &Notifier{
+var Notifier = &notifier{
 	Name:    "go.airbrake",
 	Version: "0.1",
 	URL:     "https://github.com/GeertJohan/go.airbake",
