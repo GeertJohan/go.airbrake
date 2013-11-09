@@ -21,8 +21,10 @@ type Brake struct {
 	apiKey      string
 }
 
+// Config can be used to set optional preferences and log values
 type Config struct {
-	EnvironmentVersion string
+	// AppVersion, when set, will be sent along with every error log
+	AppVersion string
 
 	// LogWriter, when not nil, will write logs to it
 	LogWriter io.Writer
@@ -32,7 +34,7 @@ type Config struct {
 }
 
 var defaultConfig = &Config{
-	EnvironmentVersion: "",
+	AppVersion: "",
 }
 
 // NewBrake creates a new *Brake instance
@@ -45,7 +47,7 @@ func NewBrake(key string, name string, config *Config) *Brake {
 		config: config,
 		environment: &environment{
 			Name:    name,
-			Version: config.EnvironmentVersion,
+			Version: config.AppVersion,
 		},
 		apiKey: key,
 	}
