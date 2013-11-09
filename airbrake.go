@@ -128,11 +128,35 @@ func (b *Brake) Recover() {
 	//++
 }
 
-// DON'T USE! NOT IMPLEMENTED
-// wrap an http handler
+// brakeHTTPHandler implements http.Handler
+// it wraps a http.Handler with brake panic recovery
+type brakeHTTPHandler struct {
+	brake   *Brake
+	handler http.Handler
+}
+
+// ServeHTTP makes brakeHTTPHandler implement http.Handler
+func (h brakeHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer h.brake.Recover()
+	h.handler.ServeHTTP(w, r)
+}
+
+// WrapHTTPHandler wraps the given http.Handler with in a panic-recovering handler.
+// Any recovered panics are reported to airbrake
 func (b *Brake) WrapHTTPHandler(handler http.Handler) http.Handler {
-	//++
-	return nil
+	return brakeHTTPHandler{
+		brake:   b,
+		handler: handler,
+	}
+}
+
+// WrapHTTPHandlerFunc wraps the given http.HandlerFunc in a panic-recovering handlerFunc.
+// Any recovered panics are reported to airbrake
+func (b *Brake) WrapHTTPHandlerFunc(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer b.Recover()
+		handler(w, r)
+	}
 }
 
 // DON'T USE! NOT IMPLEMENTED
@@ -146,6 +170,9 @@ type Var struct {
 	Key   string `xml:"key,attr"`
 	Value string `xml:""`
 }
+
+// better alternative to `type Var struct` and `[]Var`
+type Vars map[string]string
 
 const noticeVersion = "2.3"
 
