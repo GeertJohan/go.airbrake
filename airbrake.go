@@ -144,7 +144,7 @@ func (b *Brake) processNotice(not *notice) {
 	// get url (depending on config URLService)
 	var url string
 	switch b.config.URLService {
-	case URLService_None:
+	case URLService_None, "":
 		url = ns.URL
 	case URLService_Airbat:
 		url, err = airbat.UintToAirbatURL(ns.ID)
@@ -153,7 +153,7 @@ func (b *Brake) processNotice(not *notice) {
 		}
 	default:
 		urlBytes, err := shorturl.Shorten(ns.URL, b.config.URLService)
-		if err != nil {
+		if err != nil || len(urlBytes) == 0 {
 			// shortening failed, use direct url
 			url = ns.URL
 		}
