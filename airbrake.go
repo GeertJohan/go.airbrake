@@ -159,7 +159,7 @@ func (b *Brake) processNotice(not *notice) {
 	}
 
 	// human log the url
-	b.humanLog(fmt.Sprintf("error %s", url))
+	b.humanLog(fmt.Sprintf("error %s\n", url))
 }
 
 func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
