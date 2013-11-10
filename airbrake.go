@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/GeertJohan/go.airbat"
+	"github.com/subosito/shorturl"
 	"io"
 	"net/http"
 	"os"
@@ -54,7 +55,36 @@ type Config struct {
 
 	// SilentStdout, when true, won't log anything to Stdout
 	SilentStdout bool
+
+	// URLService, when set, will try to shorten the url with given service
+	// When this fails, url is not shortened
+	// Aitbat url does not require an API call
+	URLService string
 }
+
+const (
+	URLService_None   = "none"
+	URLService_Airbat = "airbat"
+
+	// other short services as provided by github.com/subosito/shorturl
+	URLService_tinyurl  = "tinyurl"
+	URLService_isgd     = "isgd"
+	URLService_gitio    = "gitio"
+	URLService_bitly    = "bitly"
+	URLService_lns      = "lns"
+	URLService_shorl    = "shorl"
+	URLService_vamu     = "vamu"
+	URLService_moourl   = "moourl"
+	URLService_cligs    = "cligs"
+	URLService_snipurl  = "snipurl"
+	URLService_adfly    = "adfly"
+	URLService_googl    = "googl"
+	URLService_gggg     = "gggg"
+	URLService_parapt   = "parapt"
+	URLService_pendekin = "pendekin"
+	URLService_catchy   = "catchy"
+	URLService_rddme    = "rddme"
+)
 
 var defaultConfig = &Config{
 	AppVersion: "",
@@ -110,11 +140,24 @@ func (b *Brake) processNotice(not *notice) {
 		b.humanLog(fmt.Sprintf("error processing notice: %s\n", err))
 		return
 	}
-	// create short url
-	//++ TODO allow disabling short url with config
-	url, err := airbat.UintToAirbatURL(ns.ID)
-	if err != nil {
-		url = fmt.Sprintf("url not available (err: %s)", err)
+
+	// get url (depending on config URLService)
+	var url string
+	switch b.config.URLService {
+	case URLService_None:
+		url = ns.URL
+	case URLService_Airbat:
+		url, err = airbat.UintToAirbatURL(ns.ID)
+		if err != nil {
+			url = fmt.Sprintf("url not available (err: %s)", err)
+		}
+	default:
+		urlBytes, err := shorturl.Shorten(ns.URL, b.config.URLService)
+		if err != nil {
+			// shortening failed, use direct url
+			url = ns.URL
+		}
+		url = string(urlBytes)
 	}
 
 	// human log the url
