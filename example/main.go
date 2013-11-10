@@ -32,8 +32,9 @@ func main() {
 
 	// create brake
 	brake := airbrake.NewBrake(projectID, apiKey, "go.airbrake example", &airbrake.Config{
-		InLog:  sgr.NewColorWriter(os.Stdout, sgr.FgYellow, true),
-		OutLog: sgr.NewColorWriter(os.Stdout, sgr.FgBlue, true),
+		InLog:      sgr.NewColorWriter(os.Stdout, sgr.FgYellow, true),
+		OutLog:     sgr.NewColorWriter(os.Stdout, sgr.FgBlue, true),
+		URLService: airbrake.URLService_Airbat,
 	})
 
 	brake.Errorf("user-problem", "User has problem: %s", problem)

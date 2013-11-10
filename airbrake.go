@@ -63,7 +63,7 @@ type Config struct {
 }
 
 const (
-	URLService_None   = "none"
+	URLService_None   = ""
 	URLService_Airbat = "airbat"
 
 	// other short services as provided by github.com/subosito/shorturl
@@ -100,8 +100,8 @@ func NewBrake(projectID string, key string, environment string, config *Config) 
 	b := &Brake{
 		config: config,
 		context: &context{
-			OS:            runtime.GOOS + " " + runtime.GOARCH,
-			Language:      "go" + runtime.Version(),
+			OS:            runtime.GOOS + "_" + runtime.GOARCH,
+			Language:      runtime.Version(),
 			RootDirectory: pwd,
 
 			Environment: environment,
@@ -142,12 +142,12 @@ func (b *Brake) processNotice(not *notice) {
 	// get url (depending on config URLService)
 	var url string
 	switch b.config.URLService {
-	case URLService_None, "":
+	case URLService_None:
 		url = ns.URL
 	case URLService_Airbat:
 		url, err = airbat.UintToAirbatURL(ns.ID)
 		if err != nil {
-			url = fmt.Sprintf("url not available (err: %s)", err)
+			url = ns.URL
 		}
 	default:
 		urlBytes, err := shorturl.Shorten(ns.URL, b.config.URLService)
