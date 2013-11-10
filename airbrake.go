@@ -26,12 +26,12 @@ type Brake struct {
 
 // Config can be used to set optional preferences and log values
 type Config struct {
+	// // AppEnvironment, will be sent along with every error log
+	// // e.g. "production" or "testing"
+	// AppEnvironment string
+
 	// AppVersion, when set, will be sent along with every error log
 	AppVersion string
-
-	// AppEnvironment, will be sent along with every error log
-	// e.g. "production" or "testing"
-	AppEnvironment string
 
 	// AppURL, will be sent along with every error log
 	AppURL string
@@ -86,13 +86,11 @@ const (
 	URLService_rddme    = "rddme"
 )
 
-var defaultConfig = &Config{
-	AppVersion: "",
-}
+var defaultConfig = &Config{}
 
 // NewBrake creates a new *Brake instance
 // Config can be nil
-func NewBrake(projectID string, key string, name string, config *Config) *Brake {
+func NewBrake(projectID string, key string, environment string, config *Config) *Brake {
 	if config == nil {
 		config = defaultConfig
 	}
@@ -106,7 +104,7 @@ func NewBrake(projectID string, key string, name string, config *Config) *Brake 
 			Language:      "go" + runtime.Version(),
 			RootDirectory: pwd,
 
-			Environment: config.AppEnvironment,
+			Environment: environment,
 			Version:     config.AppVersion,
 			URL:         config.AppURL,
 
