@@ -31,3 +31,10 @@ Or, use the Wrap methods to wrap any http handler (recovers from panics)
 ```go
 //++ TODO, example
 ```
+
+### Todo
+ - stack trace
+ - add tests
+ - add examples
+ - make logged error more descriptive (log the message)
+ - make logged error configurable (disable type, disable message, cap message to chars (0=infinite), disable url)
