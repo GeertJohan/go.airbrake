@@ -2,23 +2,25 @@ package airbrake
 
 import (
 	"bytes"
-	"encoding/xml"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"github.com/GeertJohan/go.airbat"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 )
 
-const airbrakeNoticeURL = `http://api.airbrake.io/notifier_api/v2/notices`
+const airbrakeNoticeURL = `http://airbrake.io/api/v3/projects/%s/notices?key=%s`
 
 // Brake holds information about the running application
 // and provides a set of methods that can be called to send data to the airbrake services.
 type Brake struct {
-	config      *Config
-	environment *environment
-	apiKey      string
+	config    *Config
+	context   *context
+	projectID string
+	apiKey    string
+	noticeURL string
 }
 
 // Config can be used to set optional preferences and log values
@@ -26,8 +28,29 @@ type Config struct {
 	// AppVersion, when set, will be sent along with every error log
 	AppVersion string
 
-	// LogWriter, when not nil, will write logs to it
-	LogWriter io.Writer
+	// AppEnvironment, will be sent along with every error log
+	// e.g. "production" or "testing"
+	AppEnvironment string
+
+	// AppURL, will be sent along with every error log
+	AppURL string
+
+	// User details (for single-user applications)
+	UserID    string
+	UserName  string
+	UserEmail string
+
+	// OutLog, when set, data sentto airbrake is written.
+	// Useful for debugging.
+	OutLog io.Writer
+
+	// InLog, when set, data received from airbrake is written.
+	// Useful for debugging.
+	InLog io.Writer
+
+	// HumanLog, when not nil, will write logs to it.
+	// These are the same logs as written to Stdout.
+	HumanLog io.Writer
 
 	// SilentStdout, when true, won't log anything to Stdout
 	SilentStdout bool
@@ -38,18 +61,32 @@ var defaultConfig = &Config{
 }
 
 // NewBrake creates a new *Brake instance
-func NewBrake(key string, name string, config *Config) *Brake {
+// Config can be nil
+func NewBrake(projectID string, key string, name string, config *Config) *Brake {
 	if config == nil {
 		config = defaultConfig
 	}
 
+	pwd, _ := os.Getwd()
+
 	b := &Brake{
 		config: config,
-		environment: &environment{
-			Name:    name,
-			Version: config.AppVersion,
+		context: &context{
+			OS:            runtime.GOOS + " " + runtime.GOARCH,
+			Language:      "go" + runtime.Version(),
+			RootDirectory: pwd,
+
+			Environment: config.AppEnvironment,
+			Version:     config.AppVersion,
+			URL:         config.AppURL,
+
+			UserID:    config.UserID,
+			UserName:  config.UserName,
+			UserEmail: config.UserEmail,
 		},
-		apiKey: key,
+		projectID: projectID,
+		apiKey:    key,
+		noticeURL: fmt.Sprintf(airbrakeNoticeURL, projectID, key),
 	}
 
 	// bezig met het verwerken van sendNotice, schrijf url naar stdout (based on config.SilentStdout), en e.v.t. extra writer (LogWriter)
@@ -57,75 +94,135 @@ func NewBrake(key string, name string, config *Config) *Brake {
 	return b
 }
 
-// Error logs an error to the airbrake server
-// example: brake.Error("EOF", "could not read from file")
-func (b *Brake) Error(tipe string, msg string) {
-	n := &notice{
-		Error: &airError{
-			Type:    tipe,
-			Message: msg,
-		},
+func (b *Brake) humanLog(msg string) {
+	if !b.config.SilentStdout {
+		io.WriteString(os.Stdout, msg)
 	}
-	b.sendNotice(n)
+	if b.config.HumanLog != nil {
+		io.WriteString(b.config.HumanLog, msg)
+	}
 }
 
-type noticeSuccess struct {
-	XMLName interface{} `xml:"notice"`
-	ID      int64       `xml:"id"`
-	URL     string      `xml:"url"`
+func (b *Brake) processNotice(not *notice) {
+	// get ns
+	ns, err := b.sendNotice(not)
+	if err != nil {
+		b.humanLog(fmt.Sprintf("error processing notice: %s\n", err))
+		return
+	}
+	// create short url
+	//++ TODO allow disabling short url with config
+	url, err := airbat.UintToAirbatURL(ns.ID)
+	if err != nil {
+		url = fmt.Sprintf("url not available (err: %s)", err)
+	}
+
+	// human log the url
+	b.humanLog(fmt.Sprintf("error %s", url))
 }
 
 func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
 	// setup notice
-	not.Version = noticeVersion
-	not.APIKey = b.apiKey
 	not.Notifier = Notifier
-	not.Environment = b.environment
+	not.Context = b.context
 
-	// write notice xml to buffer
+	// write notice json to buffer
 	buf := bytes.NewBuffer(nil)
-	err := xml.NewEncoder(buf).Encode(not)
+	wr := io.Writer(buf)
+	if b.config.OutLog != nil {
+		wr = io.MultiWriter(wr, b.config.OutLog)
+	}
+	err := json.NewEncoder(wr).Encode(not)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding airbrake notice: %s\n", err)
 	}
 
 	// make http request to airbrake api
-	resp, err := http.Post(airbrakeNoticeURL, "text/xml", buf)
+	resp, err := http.Post(b.noticeURL, "application/json", buf)
 	if err != nil {
 		return nil, fmt.Errorf("error making request to airbake service: %s\n", err)
 	}
 
-	// check response
-	fmt.Printf("response statuscode: %d\n", resp.StatusCode)
-	if resp.StatusCode == 200 {
+	// check response to have statuscode 201 created
+	if resp.StatusCode == 201 {
 		ns := &noticeSuccess{}
 		defer resp.Body.Close()
-		err = xml.NewDecoder(resp.Body).Decode(ns)
+
+		rd := io.Reader(resp.Body)
+		if b.config.InLog != nil {
+			rd = io.TeeReader(resp.Body, b.config.InLog)
+		}
+
+		err = json.NewDecoder(rd).Decode(ns)
 		if err != nil {
-			return nil, fmt.Errorf("error decoding response xml: %s\n", err)
+			return nil, fmt.Errorf("error decoding response json: %s\n", err)
 		}
 		return ns, nil
 	}
 
-	defer resp.Body.Close()
-	p, _ := ioutil.ReadAll(resp.Body)
-	os.Stdout.Write(p)
+	return nil, fmt.Errorf("unexpected status from api: `%s`", resp.Status)
 
-	// all done
-	return nil, errors.New("didn't finish")
+	//++ TODO handle errors from API
+	// defer resp.Body.Close()
+	// p, _ := ioutil.ReadAll(resp.Body)
+	// os.Stdout.Write(p)
+
+	// // all done
+	// return nil, errors.New("didn't finish")
+}
+
+type noticeSuccess struct {
+	ID  uint64 `json:"id,string"`
+	URL string `json:"url"`
+}
+
+// // SetUser allows you to set user details on the context of the Brake
+// // This avoids creating a new Brake once a user has authenticated in a single-user application.
+// // For multi-user applications, use multiple brakes
+// func (b *Brake) SetUser(UserID string, UserName string, UserEmail string) {
+// 	b.context.UserID = UserID
+// 	b.context.UserName = UserName
+// 	b.context.UserEmail = UserEmail
+// }
+
+// Error logs an error to the airbrake server
+//
+// example:
+// 	brake.Error("EOF", "could not read from file")
+func (b *Brake) Error(tipe string, msg string) {
+	n := &notice{
+		Errors: []*airError{
+			&airError{
+				Type:    tipe,
+				Message: msg,
+			},
+		},
+	}
+	b.processNotice(n)
 }
 
 // Errorf logs an error to the airbrake server with a format/values error message
 // This is acutally just a shorthand for Error(tipe, fmt.Sprintf("format %s %d", str, integer))
-// example: brake.Error("EOF", "could not read from file %s", filename)
+//
+// example:
+// 	brake.Error("EOF", "could not read from file %s", filename)
 func (b *Brake) Errorf(tipe string, format string, values ...interface{}) {
 	b.Error(tipe, fmt.Sprintf(format, values...))
 }
 
-// DON'T USE! NOT IMPLEMENTED
-// defer a call to this method to recover from panics and have the panic logged
+// Recover can be deferred to recover from a panic
+//
+// example:
+// 	func doSomethingDangerous() {
+// 		defer brake.Recover()
+//
+// 		thisMightPanic()
+// 		thisMightAlsoPanic()
+// 	}
 func (b *Brake) Recover() {
-	//++
+	if r := recover(); r != nil {
+		b.Error("panic", fmt.Sprint(r))
+	}
 }
 
 // brakeHTTPHandler implements http.Handler
@@ -159,50 +256,63 @@ func (b *Brake) WrapHTTPHandlerFunc(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// DON'T USE! NOT IMPLEMENTED
-// error with data
-func (b *Brake) ErrorData(tipe string, msg string, data ...Var) {
-	//++
+// ErrorData sends an error with data to airbrake
+//
+// example:
+// 	brake.ErrorData("EOF", "could not read from file", airbrake.Data{
+// 		Environment: airbrake.Vars{ ... },
+// 		Session:     airbrake.vars{"AccountID": accountID},
+// 		Params:      airbrake.Vars{"filename": myFile},
+// 	})
+func (b *Brake) ErrorData(tipe string, msg string, data Data) {
+	n := &notice{
+		Errors: []*airError{
+			&airError{
+				Type:    tipe,
+				Message: msg,
+			},
+		},
+		Environment: data.Environment,
+		Session:     data.Session,
+		Params:      data.Params,
+	}
+	b.processNotice(n)
 }
-
-// Var describes a simple key-value item
-type Var struct {
-	Key   string `xml:"key,attr"`
-	Value string `xml:""`
-}
-
-// better alternative to `type Var struct` and `[]Var`
-type Vars map[string]string
 
 const noticeVersion = "2.3"
 
 type notice struct {
-	XMLName interface{} `xml:"notice"`
-	// Required. The version of the API being used. Should be set to "2.3"
-	Version string `xml:"version,attr"`
-	// Required. The API key for the project that this error belongs to.
-	// The API key can be found by viewing the edit project form on the Airbrake site.
-	APIKey string `xml:"api-key"`
-	// Notifier (client)
-	Notifier *notifier `xml:"notifier"`
-	// Environment (where did this happen?)
-	Environment *environment `xml:"server-environment"`
+	// Notifier (client library/package)
+	Notifier *notifier `json:"notifier"`
+
+	// Context
+	Context *context `json:"context"`
+
 	// Error
-	Error *airError `xml:"error"`
-	// Backtrace (stack)
-	Backtrace *backtrace `xml:"backtrace"`
-	// Request (probably http stuff)
-	Request *request `xml:"request"`
+	Errors []*airError `json:"errors"`
+
+	// Data fields
+	Environment Vars `json:"environment,omitempty"`
+	Session     Vars `json:"session,omitempty"`
+	Params      Vars `json:"params,omitempty"`
+}
+
+// Data is to be used with Brake.ErrorData()
+// These fields are sent along with the error to airbrake
+type Data struct {
+	Environment Vars
+	Session     Vars
+	Params      Vars
 }
 
 // Notifier describes the application or library that sends an error to airbrake
 type notifier struct {
 	// Required. The name of the notifier client submitting the request, such as "hoptoad4j" or "rack-hoptoad."
-	Name string `xml:"name"`
+	Name string `json:"name"`
 	// Required. The version number of the notifier client submitting the request.
-	Version string `xml:"version"`
+	Version string `json:"version"`
 	// Required. A URL at which more information can be obtained concerning the notifier client.
-	URL string `xml:"url"`
+	URL string `json:"url"`
 }
 
 // DefaultNotifier holds information about this go package
@@ -213,54 +323,36 @@ var Notifier = &notifier{
 	URL:     "https://github.com/GeertJohan/go.airbake",
 }
 
-type environment struct {
-	// Optional. The path to the project in which the error occurred, such as RAILS_ROOT or DOCUMENT_ROOT.
-	//++ TODO: find out using go/build ?
-	Root string `xml:"project-root,omitempty"`
-	// Required. The name of the server environment in which the error occurred, such as "staging" or "production".
-	Name string `xml:"environment-name"`
-	// Optional. The version of the application that this error came from. If the App Version is set on the project, then errors older than the project's app version will be ignored. This version field uses Semantic Versioning style versioning.
-	Version string `xml:"app-version,omitempty"`
+type context struct {
+	OS            string `json:"os"`            // set by pkg (goos+goarch)
+	Language      string `json:"language"`      // set by pkg ("go" + version)
+	RootDirectory string `json:"rootDirectory"` // set by pkg (pwd)
+
+	Environment string `json:"environment"` // set through config
+	Version     string `json:"version"`     // set through config
+	URL         string `json:"url"`         // set through config
+
+	UserID    string `json:"userId,omitempty"`    // set through config
+	UserName  string `json:"userName,omitempty"`  // set through config
+	UserEmail string `json:"userEmail,omitempty"` // set through config
 }
 
 // airError contains the error information
 type airError struct {
-	// Required. The class name or type of error that occurred.
-	Type string `xml:"class"`
-	// Optional. A short message describing the error that occurred.
-	Message string `xml:"message,omitempty"`
+	// The type of error that occurred.
+	Type string `json:"type"`
+	// A short message describing the error that occurred.
+	Message string `json:"message,omitempty"`
+	// Stack trace
+	Backtrace []line `json:"backtrace,omitempty"`
 }
 
-// /notice/error/backtrace/line
-// Required. This element can occur more than once.
-// Each line element describes one code location or frame in the backtrace when the error occurred,
-// and requires @file and @number attributes.
-// If the location includes a method or function, the @method attribute should be used.
-type backtrace struct {
-	Lines []line `xml:"line"`
-}
-
+// line from a stack trace
 type line struct {
-	File   string `xml:"file,attr"`
-	Number string `xml:"number,attr"`
-	Method string `xml:"method,attr,omitempty"`
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Function string `json:"function"`
 }
 
-// Optional. If this error occurred during an HTTP request,
-// the children of this element can be used to describe the request that caused the error.
-type request struct {
-	// Required. The URL at which the error occurred.
-	URL string `xml:"url"`
-	// Required. The component in which the error occurred.
-	// Otherwise, this can be set to a route or other request category.
-	//++ TODO: This should probably be the name of the handler, lets see if we can figure that out
-	Compontent string `xml:"component"`
-	// Optional. The action in which the error occurred.
-	// If each request is routed to a controller action, this should be set here.
-	// Otherwise, this can be set to a method or other request subcategory.
-	Action string `xml:"action"`
-	// Optional. A list of var elements describing request parameters from the query string, POST body, routing, and other inputs.
-	Params []Var `xml:"params>var"`
-	// Optional. A list of var elements describing session variables from the request. See the section on var elements below.
-	Session []Var `xml:"session>var"`
-}
+// Vars types a simple key/value map
+type Vars map[string]interface{}
