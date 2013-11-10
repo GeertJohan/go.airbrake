@@ -361,7 +361,7 @@ type notifier struct {
 var Notifier = &notifier{
 	Name:    "go.airbrake",
 	Version: "0.1",
-	URL:     "https://github.com/GeertJohan/go.airbake",
+	URL:     "https://github.com/GeertJohan/go.airbrake",
 }
 
 type context struct {
