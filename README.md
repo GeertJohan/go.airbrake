@@ -33,7 +33,6 @@ Or, use the Wrap methods to wrap any http handler (recovers from panics)
 ```
 
 ### Todo
- - stack trace
  - add tests
  - add examples
  - make logged error more descriptive (log the message)
