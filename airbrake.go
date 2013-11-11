@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 )
 
 const airbrakeNoticeURL = `http://airbrake.io/api/v3/projects/%s/notices?key=%s`
@@ -132,6 +133,40 @@ func (b *Brake) humanLog(msg string) {
 }
 
 func (b *Brake) processNotice(not *notice) {
+	// setup notice
+	not.Notifier = Notifier
+	not.Context = b.context
+
+	// create backtrace
+	if not.Errors[0].Backtrace == nil {
+		not.Errors[0].Backtrace = make([]line, 0, 4)
+	}
+
+	// get stack
+	for skip := 1; ; skip++ {
+		// get caller details
+		pc, callerFile, callerLine, ok := runtime.Caller(skip)
+		if !ok {
+			break
+		}
+
+		// get func for pc
+		f := runtime.FuncForPC(pc)
+		if strings.Contains(f.Name(), "airbrake.(*Brake).") {
+			// skip to next frame
+			//++ TODO: might actually choose to show the first call to the airbrake package
+			//++ TODO: what happens on recover?
+			continue
+		}
+
+		// add line to backtrace
+		not.Errors[0].Backtrace = append(not.Errors[0].Backtrace, line{
+			File:     callerFile,
+			Line:     callerLine,
+			Function: f.Name(),
+		})
+	}
+
 	// get ns
 	ns, err := b.sendNotice(not)
 	if err != nil {
@@ -163,9 +198,6 @@ func (b *Brake) processNotice(not *notice) {
 }
 
 func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
-	// setup notice
-	not.Notifier = Notifier
-	not.Context = b.context
 
 	// write notice json to buffer
 	buf := bytes.NewBuffer(nil)
