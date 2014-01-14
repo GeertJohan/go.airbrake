@@ -159,11 +159,16 @@ func (b *Brake) processNotice(not *notice) {
 		// get func for pc
 		f := runtime.FuncForPC(pc)
 		funcName := f.Name()
-		if strings.Contains(funcName, "airbrake.(*Brake).") {
-			continue
-		}
-		if funcName == "runtime.panic" {
-			continue
+		// only skip leading frames
+		if len(not.Errors[0].Backtrace) == 0 {
+			// skip leading frames from the actual error into this package
+			if strings.Contains(funcName, "airbrake.(*Brake).") {
+				continue
+			}
+			// skip the runtime panic/recovery
+			if funcName == "runtime.panic" {
+				continue
+			}
 		}
 
 		// add line to backtrace
