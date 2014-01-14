@@ -2,6 +2,8 @@
 
 go.airbrake provides airbrake v3 error logging functionality.
 
+[![GoDoc](https://godoc.org/github.com/GeertJohan/go.airbrake?status.png)](https://godoc.org/github.com/GeertJohan/go.airbrake)
+
 ### Installation
 `go get github.com/GeertJohan/go.airbrake`
 
