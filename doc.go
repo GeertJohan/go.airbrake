@@ -1,4 +1,4 @@
-// go.airbrake provides methods to use the Airbrake error logging service.
+// Package airbrake provides methods to use the Airbrake error logging service.
 //
 // For examples visit https://github.com/GeertJohan/go.airbrake
 //
