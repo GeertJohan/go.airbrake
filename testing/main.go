@@ -31,7 +31,9 @@ func initBrake() {
 	}
 
 	// setup brake
-	brake = airbrake.NewBrake(config.ProjectID, config.APIKey, "local-tester", nil)
+	brake = airbrake.NewBrake(config.ProjectID, config.APIKey, "local-tester", &airbrake.Config{
+		URLService: airbrake.URLService_Airbat,
+	})
 }
 
 func main() {

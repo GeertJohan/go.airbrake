@@ -27,43 +27,41 @@ type Brake struct {
 
 // Config can be used to set optional preferences and log values
 type Config struct {
-	// // AppEnvironment, will be sent along with every error log
-	// // e.g. "production" or "testing"
-	// AppEnvironment string
-
-	// AppVersion, when set, will be sent along with every error log
+	// AppVersion, when set, will be sent along with every error notice
 	AppVersion string
 
-	// AppURL, will be sent along with every error log
+	// AppURL, when set, will be sent along with every error notice
 	AppURL string
 
 	// User details (for single-user applications)
+	// You can change these later-on using
 	UserID    string
 	UserName  string
 	UserEmail string
 
-	// OutLog, when set, data sentto airbrake is written.
+	// DebugLogOut, when set, data sentto airbrake servers is written to this io.Writer
 	// Useful for debugging.
-	OutLog io.Writer
+	DebugLogOut io.Writer
 
-	// InLog, when set, data received from airbrake is written.
+	// DebugLogIn, when set, data received from airbrake servers is written to this io.Writer
 	// Useful for debugging.
-	InLog io.Writer
+	DebugLogIn io.Writer
 
 	// HumanLog, when not nil, will write logs to it.
-	// These are the same logs as written to Stdout.
+	// These are the same logs as written to Stdout by default.
 	HumanLog io.Writer
 
 	// SilentStdout, when true, won't log anything to Stdout
 	SilentStdout bool
 
 	// URLService, when set, will try to shorten the url with given service
-	// When this fails, url is not shortened
-	// Aitbat url does not require an API call
+	// When this fails, url is not shortened and original url is used.
+	// Aitbat url is calculated client-side and does not require an extra API call
 	URLService string
 }
 
 const (
+	// TODO: switch these two arround? (making airbat default)
 	URLService_None   = ""
 	URLService_Airbat = "airbat"
 
@@ -118,9 +116,15 @@ func NewBrake(projectID string, key string, environment string, config *Config) 
 		noticeURL: fmt.Sprintf(airbrakeNoticeURL, projectID, key),
 	}
 
-	// bezig met het verwerken van sendNotice, schrijf url naar stdout (based on config.SilentStdout), en e.v.t. extra writer (LogWriter)
-
 	return b
+}
+
+// SetUserDetails changes the UserDetails on a Brake
+// This overwrites the UserID, UserName and UserEmail values that you might've set with Config (NewBrake() argument)
+func (b *Brake) SetUserDetails(id, name, email string) {
+	b.context.UserID = id
+	b.context.UserName = name
+	b.context.UserEmail = email
 }
 
 func (b *Brake) humanLog(msg string) {
@@ -138,6 +142,8 @@ func (b *Brake) processNotice(not *notice) {
 	not.Context = b.context
 
 	// create backtrace
+	//++ TODO: multi-thread (multi-goroutine) backtraces
+	//++ TODO: find out the limit of backtraces for a notify and limit to that
 	if not.Errors[0].Backtrace == nil {
 		not.Errors[0].Backtrace = make([]line, 0, 4)
 	}
@@ -202,8 +208,8 @@ func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
 	// write notice json to buffer
 	buf := bytes.NewBuffer(nil)
 	wr := io.Writer(buf)
-	if b.config.OutLog != nil {
-		wr = io.MultiWriter(wr, b.config.OutLog)
+	if b.config.DebugLogOut != nil {
+		wr = io.MultiWriter(wr, b.config.DebugLogOut)
 	}
 	err := json.NewEncoder(wr).Encode(not)
 	if err != nil {
@@ -222,8 +228,8 @@ func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {
 		defer resp.Body.Close()
 
 		rd := io.Reader(resp.Body)
-		if b.config.InLog != nil {
-			rd = io.TeeReader(resp.Body, b.config.InLog)
+		if b.config.DebugLogIn != nil {
+			rd = io.TeeReader(resp.Body, b.config.DebugLogIn)
 		}
 
 		err = json.NewDecoder(rd).Decode(ns)
