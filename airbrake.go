@@ -262,12 +262,12 @@ type noticeSuccess struct {
 //
 // example:
 // 	brake.Error("EOF", "could not read from file")
-func (b *Brake) Error(tipe string, msg string) {
+func (b *Brake) Error(errorClass string, errorMessage string) {
 	n := &notice{
 		Errors: []*airError{
 			&airError{
-				Type:    tipe,
-				Message: msg,
+				Type:    errorClass,
+				Message: errorMessage,
 			},
 		},
 	}
@@ -275,12 +275,12 @@ func (b *Brake) Error(tipe string, msg string) {
 }
 
 // Errorf logs an error to the airbrake server with a format/values error message
-// This is acutally just a shorthand for Error(tipe, fmt.Sprintf("format %s %d", str, integer))
+// This is acutally just a shorthand for Error(errorClass, fmt.Sprintf("format %s %d", str, integer))
 //
 // example:
 // 	brake.Error("EOF", "could not read from file %s", filename)
-func (b *Brake) Errorf(tipe string, format string, values ...interface{}) {
-	b.Error(tipe, fmt.Sprintf(format, values...))
+func (b *Brake) Errorf(errorClass string, format string, values ...interface{}) {
+	b.Error(errorClass, fmt.Sprintf(format, values...))
 }
 
 // Recover can be deferred to recover from a panic
@@ -369,12 +369,12 @@ func (b *Brake) WrapHTTPHandlerFunc(handler http.HandlerFunc) http.HandlerFunc {
 // 		Session:     airbrake.vars{"AccountID": accountID},
 // 		Params:      airbrake.Vars{"filename": myFile},
 // 	})
-func (b *Brake) ErrorData(tipe string, msg string, data Data) {
+func (b *Brake) ErrorData(errorClass string, errorMessage string, data Data) {
 	n := &notice{
 		Errors: []*airError{
 			&airError{
-				Type:    tipe,
-				Message: msg,
+				Type:    errorClass,
+				Message: errorMessage,
 			},
 		},
 		Environment: data.Environment,
@@ -420,8 +420,8 @@ type notifier struct {
 	URL string `json:"url"`
 }
 
-// DefaultNotifier holds information about this go package
-// these values are exported so you can override them if you like
+// Notifier holds information about this go package (the notifier)
+// these values are exported so you can override them if you wish
 var Notifier = &notifier{
 	Name:    "go.airbrake",
 	Version: "0.1",
