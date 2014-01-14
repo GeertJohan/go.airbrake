@@ -26,8 +26,9 @@ func doStuff() {
 	panic("oh noes! a panic!")
 }
 ```
+The deferred call to `brake.Recover()` recovers from the panic and sends the message to Airbrake.io. Error class will be "panic".
 
-Or, use the Wrap methods to wrap any http handler (recovers from panics)
+You can use the WrapHTTP* methods to wrap any http.Handler or http.HandlerFunc. This recovers the Handler/HandlerFunc from any panic.
 ```go
 //++ TODO, example
 ```

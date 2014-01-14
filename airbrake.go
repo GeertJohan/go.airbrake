@@ -304,6 +304,7 @@ func (b *Brake) Errorf(errorClass string, format string, values ...interface{}) 
 // 		thisMightPanic()
 // 		thisMightAlsoPanic()
 // 	}
+//
 func (b *Brake) Recover() {
 	if r := recover(); r != nil {
 		b.Error("panic", fmt.Sprint(r))
@@ -341,46 +342,14 @@ func (b *Brake) WrapHTTPHandlerFunc(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// type ServeMux struct {
-// 	//++
-// }
-
-// func (b *Brake) NewServeMux() *ServeMux {
-// 	//++
-// }
-
-// // Handle registers the handler for the given pattern. If a handler already exists for pattern, Handle panics.
-// func (mux *ServeMux) Handle(pattern string, handler Handler) {
-// 	//++
-// }
-
-// // HandleFunc registers the handler function for the given pattern.
-// func (mux *ServeMux) HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
-// 	//++
-// }
-
-// // Handler returns the handler to use for the given request, consulting r.Method, r.Host, and r.URL.Path. It always returns a non-nil handler. If the path is not in its canonical form, the handler will be an internally-generated handler that redirects to the canonical path.
-// //
-// // Handler also returns the registered pattern that matches the request or, in the case of internally-generated redirects, the pattern that will match after following the redirect.
-// //
-// // If there is no registered handler that applies to the request, Handler returns a “page not found” handler and an empty pattern.
-// func (mux *ServeMux) Handler(r *Request) (h Handler, pattern string) {
-// 	//++
-// }
-
-// // ServeHTTP dispatches the request to the handler whose pattern most closely matches the request URL.
-// func (mux *ServeMux) ServeHTTP(w ResponseWriter, r *Request) {
-// 	//++
-// }
-
 // ErrorData sends an error with data to airbrake
 //
 // example:
-// 	brake.ErrorData("EOF", "could not read from file", airbrake.Data{
-// 		Environment: airbrake.Vars{ ... },
-// 		Session:     airbrake.vars{"AccountID": accountID},
-// 		Params:      airbrake.Vars{"filename": myFile},
-// 	})
+// brake.ErrorData("EOF", "could not read from file", airbrake.Data{
+// 	Environment: airbrake.Vars{"GOPATH": os.Getenv("GOPATH")},
+// 	Session:     airbrake.Vars{"AccountID": 1337},
+// 	Params:      airbrake.Vars{"filename": "foo.bar", "object": airbrake.Vars{"foo": "bar", "number": 42}},
+// })
 func (b *Brake) ErrorData(errorClass string, errorMessage string, data Data) {
 	n := &notice{
 		Errors: []*airError{

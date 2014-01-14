@@ -53,6 +53,8 @@ func main() {
 			fmt.Printf("error reading api key: %s\n", err)
 			os.Exit(1)
 		}
+	} else {
+		fmt.Println("got apiKey from config.json")
 	}
 
 	// create brake
@@ -80,10 +82,26 @@ func main() {
 	brake.Errorf("user-problem", "User has problem: %s", problem)
 
 	doPanic()
+	subPanic()
+
+	brake.ErrorData("data-dump", "this contains more data (env, sess, params)", airbrake.Data{
+		Environment: airbrake.Vars{"GOPATH": os.Getenv("GOPATH")},
+		Session:     airbrake.Vars{"AccountID": 1337},
+		Params:      airbrake.Vars{"filename": "foo.bar", "object": airbrake.Vars{"foo": "bar", "number": 42}},
+	})
 }
 
 func doPanic() {
 	defer brake.Recover()
 
-	panic("oh no!")
+	panic("this is a panic")
+}
+
+func subPanic() {
+	defer brake.Recover()
+
+	subPanicPanic()
+}
+func subPanicPanic() {
+	panic("this is a panic with larger stack")
 }
