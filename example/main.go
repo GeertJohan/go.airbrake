@@ -31,9 +31,7 @@ func main() {
 	// decode config file
 	config := &Config{}
 	err = json.NewDecoder(configFile).Decode(config)
-	if err != nil {
-		if err == os.ErrNotExist {
-		}
+	if err != nil && err != os.ErrNotExist {
 		log.Fatalf("error decoding configFile: %s\n", err)
 	}
 
@@ -44,6 +42,8 @@ func main() {
 			fmt.Printf("error reading ID: %s\n", err)
 			os.Exit(1)
 		}
+	} else {
+		fmt.Println("got projectID from config.json")
 	}
 
 	if len(config.APIKey) == 0 {
@@ -55,19 +55,27 @@ func main() {
 		}
 	}
 
-	// get problem
-	problem, err := linenoise.Line("What's your problem?!?: ")
-	if err != nil {
-		fmt.Printf("error reading user's problem: %s\n", err)
-		os.Exit(1)
-	}
-
 	// create brake
 	brake = airbrake.NewBrake(config.ProjectID, config.APIKey, "go.airbrake example", &airbrake.Config{
 		DebugLogIn:  sgr.NewColorWriter(os.Stdout, sgr.FgYellow, true),
 		DebugLogOut: sgr.NewColorWriter(os.Stdout, sgr.FgBlue, true),
 		URLService:  airbrake.URLService_Airbat,
+		UserID:      "42",
+		UserName:    "GeertJohan",
+		UserEmail:   "geertjohan@geertjohan.net",
+		AppVersion:  "4.2",
+		AppURL:      "http://thisisafaketesturlthatnooneregisteredprobably1231425123.com/stuff",
 	})
 
+	// get problem
+	problem, err := linenoise.Line("What's your problem?!?: ")
+	if err != nil {
+		fmt.Printf("error reading user's problem: %s\n", err)
+		os.Exit(1)
+	} else {
+		fmt.Println("got apiKey from config.json")
+	}
+
+	// brake on problem
 	brake.Errorf("user-problem", "User has problem: %s", problem)
 }
