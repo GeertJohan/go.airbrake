@@ -47,12 +47,12 @@ type Config struct {
 	// Useful for debugging.
 	DebugLogIn io.Writer
 
-	// HumanLog, when not nil, will write logs to it.
+	// LogWriter, when not nil, will write logs to it.
 	// These are the same logs as written to Stdout by default.
 	LogWriter io.Writer
 
-	// SilentStdout, when true, won't log anything to Stdout
-	LogSilentStdout bool
+	// LogStdoutSilent, when true, won't log anything to Stdout
+	LogStdoutSilent bool
 
 	// URLService, when set, will try to shorten the url with given service
 	// When this fails, url is not shortened and original url is used.
@@ -128,7 +128,7 @@ func (b *Brake) SetUserDetails(id, name, email string) {
 }
 
 func (b *Brake) humanLog(msg string) {
-	if !b.config.LogSilentStdout {
+	if !b.config.LogStdoutSilent {
 		io.WriteString(os.Stdout, msg)
 	}
 	if b.config.LogWriter != nil {

@@ -12,9 +12,32 @@ First, create a Brake:
 ``` go
 brake := airbrake.NewBrake("projectID", "apiKey", "application environment", nil)
 ```
+
 Then, use the brake when there is a problem:
 ```go
-brake.Errorf("user-problem", "User has problem: %s", problem)
+brake.Error("household", "All the food is gone!")
+```
+
+Use `Errorf` for formatted strings (`fmt.Sprintf` shorthand):
+```go
+roof := "roof"
+fire := "fire!"
+brake.Errorf("house-structure", "The %s is on %s", roof, fire)
+```
+
+Send data with your error:
+```go
+brake.ErrorData("data-dump", "some error message here", airbrake.Data{
+	Environment: airbrake.Vars{"GOPATH": os.Getenv("GOPATH")},
+	Session:     airbrake.Vars{"AccountID": 1337},
+	Params:      airbrake.Vars{
+		"filename": "foo.bar",
+		"object": airbrake.Vars{
+			"foo": "bar",
+			"number": 42,
+		}
+	},
+})
 ```
 
 You can also use the brake to recover from a panic
@@ -32,11 +55,12 @@ The deferred call to `brake.Recover()` recovers from the panic and sends the mes
 
 You can use the WrapHTTP* methods to wrap any http.Handler or http.HandlerFunc. This recovers the Handler/HandlerFunc from any panic.
 ```go
-//++ TODO, example
+//++ TODO, test and example
 ```
 
 ### Todo
- - add tests
- - add examples
- - make logged error more descriptive (log the message)
- - make logged error configurable (disable type, disable message, cap message to chars (0=infinite), disable url)
+ - rename URLService's to satisfy golint
+ - add comments to URLService to satisfy golint
+ - think about airb.at
+ - make human log more descriptive (log the message)
+ - make human log configurable (disable type, disable message, cap message to chars (0=infinite), disable url)
