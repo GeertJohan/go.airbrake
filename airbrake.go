@@ -158,10 +158,11 @@ func (b *Brake) processNotice(not *notice) {
 
 		// get func for pc
 		f := runtime.FuncForPC(pc)
-		if strings.Contains(f.Name(), "airbrake.(*Brake).") {
-			// skip to next frame
-			//++ TODO: might actually choose to show the first call to the airbrake package
-			//++ TODO: what happens on recover?
+		funcName := f.Name()
+		if strings.Contains(funcName, "airbrake.(*Brake).") {
+			continue
+		}
+		if funcName == "runtime.panic" {
 			continue
 		}
 
@@ -169,7 +170,7 @@ func (b *Brake) processNotice(not *notice) {
 		not.Errors[0].Backtrace = append(not.Errors[0].Backtrace, line{
 			File:     callerFile,
 			Line:     callerLine,
-			Function: f.Name(),
+			Function: funcName,
 		})
 	}
 

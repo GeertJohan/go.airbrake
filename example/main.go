@@ -78,4 +78,12 @@ func main() {
 
 	// brake on problem
 	brake.Errorf("user-problem", "User has problem: %s", problem)
+
+	doPanic()
+}
+
+func doPanic() {
+	defer brake.Recover()
+
+	panic("oh no!")
 }
