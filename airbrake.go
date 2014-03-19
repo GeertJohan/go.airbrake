@@ -224,7 +224,9 @@ func (b *Brake) processNotice(not *notice) {
 	}
 
 	// human log the url
-	b.humanLog(fmt.Sprintf("error %s\n", url))
+	for _, aiErr := range not.Errors {
+		b.humanLog(fmt.Sprintf("%s: %s (%s)\n", aiErr.Type, aiErr.Message, url))
+	}
 }
 
 func (b *Brake) sendNotice(not *notice) (*noticeSuccess, error) {

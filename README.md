@@ -58,7 +58,7 @@ You can use the WrapHTTP* methods to wrap any http.Handler or http.HandlerFunc. 
 //++ TODO, test and example
 ```
 
-### Todo
+### TODO
  - think about airb.at
- - make human log more descriptive (log the message)
  - make human log configurable (disable type, disable message, cap message to chars (0=infinite), disable url)
+ - more TODO's in code
