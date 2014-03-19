@@ -310,7 +310,7 @@ func (b *Brake) Notify(errorClass string, errorMessage string) {
 // example:
 // 	brake.Notifyf("error", "could not read from file %s", filename)
 func (b *Brake) Notifyf(errorClass string, format string, values ...interface{}) {
-	b.Error(errorClass, fmt.Sprintf(format, values...))
+	b.Notify(errorClass, fmt.Sprintf(format, values...))
 }
 
 // Recover can be deferred to recover from a panic
@@ -325,7 +325,7 @@ func (b *Brake) Notifyf(errorClass string, format string, values ...interface{})
 //
 func (b *Brake) Recover() {
 	if r := recover(); r != nil {
-		b.Error("panic", fmt.Sprint(r))
+		b.Notify("panic", fmt.Sprint(r))
 	}
 }
 
