@@ -288,11 +288,11 @@ type noticeSuccess struct {
 // 	b.context.UserEmail = UserEmail
 // }
 
-// Error logs an error to the airbrake server
+// Notify logs an error to the airbrake server
 //
 // example:
-// 	brake.Error("EOF", "could not read from file")
-func (b *Brake) Error(errorClass string, errorMessage string) {
+// 	brake.Notify("EOF", "could not read from file")
+func (b *Brake) Notify(errorClass string, errorMessage string) {
 	n := &notice{
 		Errors: []*airError{
 			&airError{
@@ -304,12 +304,12 @@ func (b *Brake) Error(errorClass string, errorMessage string) {
 	b.processNotice(n)
 }
 
-// Errorf logs an error to the airbrake server with a format/values error message
+// Notifyf logs an error to the airbrake server with a format/values error message
 // This is acutally just a shorthand for Error(errorClass, fmt.Sprintf("format %s %d", str, integer))
 //
 // example:
-// 	brake.Error("EOF", "could not read from file %s", filename)
-func (b *Brake) Errorf(errorClass string, format string, values ...interface{}) {
+// 	brake.Notifyf("error", "could not read from file %s", filename)
+func (b *Brake) Notifyf(errorClass string, format string, values ...interface{}) {
 	b.Error(errorClass, fmt.Sprintf(format, values...))
 }
 
@@ -360,15 +360,15 @@ func (b *Brake) WrapHTTPHandlerFunc(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// ErrorData sends an error with data to airbrake
+// NotifyData sends an error with data to airbrake
 //
 // example:
-// brake.ErrorData("EOF", "could not read from file", airbrake.Data{
+// brake.NotifyData("EOF", "could not read from file", airbrake.Data{
 // 	Environment: airbrake.Vars{"GOPATH": os.Getenv("GOPATH")},
 // 	Session:     airbrake.Vars{"AccountID": 1337},
 // 	Params:      airbrake.Vars{"filename": "foo.bar", "object": airbrake.Vars{"foo": "bar", "number": 42}},
 // })
-func (b *Brake) ErrorData(errorClass string, errorMessage string, data Data) {
+func (b *Brake) NotifyData(errorClass string, errorMessage string, data Data) {
 	n := &notice{
 		Errors: []*airError{
 			&airError{
