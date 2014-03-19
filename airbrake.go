@@ -51,8 +51,8 @@ type Config struct {
 	// These are the same logs as written to Stdout by default.
 	LogWriter io.Writer
 
-	// LogStdoutSilent, when true, won't log anything to Stdout
-	LogStdoutSilent bool
+	// LogDisableStdout, when true, won't log anything to Stdout
+	LogDisableStdout bool
 
 	// URLService, when set, will try to shorten the url with given service
 	// When this fails, url is not shortened and original url is used.
@@ -146,7 +146,7 @@ func (b *Brake) SetUserDetails(id, name, email string) {
 }
 
 func (b *Brake) humanLog(msg string) {
-	if !b.config.LogStdoutSilent {
+	if !b.config.LogDisableStdout {
 		io.WriteString(os.Stdout, msg)
 	}
 	if b.config.LogWriter != nil {
