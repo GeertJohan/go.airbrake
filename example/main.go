@@ -61,7 +61,7 @@ func main() {
 	brake = airbrake.NewBrake(config.ProjectID, config.APIKey, "go.airbrake example", &airbrake.Config{
 		DebugLogIn:  sgr.NewColorWriter(os.Stdout, sgr.FgYellow, true),
 		DebugLogOut: sgr.NewColorWriter(os.Stdout, sgr.FgBlue, true),
-		URLService:  airbrake.URLService_Airbat,
+		URLService:  airbrake.URLServiceAirbat,
 		UserID:      "42",
 		UserName:    "GeertJohan",
 		UserEmail:   "geertjohan@geertjohan.net",
