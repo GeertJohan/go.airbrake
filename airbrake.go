@@ -34,7 +34,7 @@ type Config struct {
 	AppURL string
 
 	// User details (for single-user applications)
-	// You can change these later-on using
+	// You can change these later-on via SetUserDetails(..)
 	UserID    string
 	UserName  string
 	UserEmail string
@@ -61,28 +61,46 @@ type Config struct {
 }
 
 const (
-	// TODO: switch these two arround? (making airbat default)
-	URLService_None   = ""
-	URLService_Airbat = "airbat"
+	// URLServiceNone disables short url service
+	URLServiceNone = ""
 
-	// other short services as provided by github.com/subosito/shorturl
-	URLService_tinyurl  = "tinyurl"
-	URLService_isgd     = "isgd"
-	URLService_gitio    = "gitio"
-	URLService_bitly    = "bitly"
-	URLService_lns      = "lns"
-	URLService_shorl    = "shorl"
-	URLService_vamu     = "vamu"
-	URLService_moourl   = "moourl"
-	URLService_cligs    = "cligs"
-	URLService_snipurl  = "snipurl"
-	URLService_adfly    = "adfly"
-	URLService_googl    = "googl"
-	URLService_gggg     = "gggg"
-	URLService_parapt   = "parapt"
-	URLService_pendekin = "pendekin"
-	URLService_catchy   = "catchy"
-	URLService_rddme    = "rddme"
+	// URLServiceAirbat enables airb.at short url service for airbrake
+	URLServiceAirbat = "airbat"
+
+	// URLServiceTinyurl provides short url via tinyurl
+	URLServiceTinyurl = "tinyurl"
+	// URLServiceIsgd provides short url via is.gd
+	URLServiceIsgd = "isgd"
+	// URLServiceGitio provides short url via git.io
+	URLServiceGitio = "gitio"
+	// URLServiceBitly provides short url via bit.ly
+	URLServiceBitly = "bitly"
+	// URLServiceLns provides short url via lns
+	URLServiceLns = "lns"
+	// URLServiceShorl provides short url via shorl
+	URLServiceShorl = "shorl"
+	// URLServiceVamu provides short url via vamu
+	URLServiceVamu = "vamu"
+	// URLServiceMoourl provides short url via moourl
+	URLServiceMoourl = "moourl"
+	// URLServiceCligs provides short url via cligs
+	URLServiceCligs = "cligs"
+	// URLServiceSnipurl provides short url via snipurl
+	URLServiceSnipurl = "snipurl"
+	// URLServiceAdfly provides short url via adfly
+	URLServiceAdfly = "adfly"
+	// URLServiceGoogl provides short url via goo.gl
+	URLServiceGoogl = "googl"
+	// URLServiceGggg provides short url via gggg
+	URLServiceGggg = "gggg"
+	// URLServiceParapt provides short url via parapt
+	URLServiceParapt = "parapt"
+	// URLServicePendekin provides short url via pendekin
+	URLServicePendekin = "pendekin"
+	// URLServiceCatchy provides short url via catchy
+	URLServiceCatchy = "catchy"
+	// URLServiceRddme provides short url via rddme
+	URLServiceRddme = "rddme"
 )
 
 var defaultConfig = &Config{}
