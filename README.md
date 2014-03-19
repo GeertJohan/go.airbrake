@@ -59,8 +59,6 @@ You can use the WrapHTTP* methods to wrap any http.Handler or http.HandlerFunc. 
 ```
 
 ### Todo
- - rename URLService's to satisfy golint
- - add comments to URLService to satisfy golint
  - think about airb.at
  - make human log more descriptive (log the message)
  - make human log configurable (disable type, disable message, cap message to chars (0=infinite), disable url)
