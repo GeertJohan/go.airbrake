@@ -207,9 +207,9 @@ func (b *Brake) processNotice(not *notice) {
 	// get url (depending on config URLService)
 	var url string
 	switch b.config.URLService {
-	case URLService_None:
+	case URLServiceNone:
 		url = ns.URL
-	case URLService_Airbat:
+	case URLServiceAirbat:
 		url, err = airbat.UintToAirbatURL(ns.ID)
 		if err != nil {
 			url = ns.URL
