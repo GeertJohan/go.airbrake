@@ -79,12 +79,12 @@ func main() {
 	}
 
 	// brake on problem
-	brake.Errorf("user-problem", "User has problem: %s", problem)
+	brake.Notifyf("user-problem", "User has problem: %s", problem)
 
 	doPanic()
 	subPanic()
 
-	brake.ErrorData("data-dump", "this contains more data (env, sess, params)", airbrake.Data{
+	brake.NotifyData("data-dump", "this contains more data (env, sess, params)", airbrake.Data{
 		Environment: airbrake.Vars{"GOPATH": os.Getenv("GOPATH")},
 		Session:     airbrake.Vars{"AccountID": 1337},
 		Params:      airbrake.Vars{"filename": "foo.bar", "object": airbrake.Vars{"foo": "bar", "number": 42}},
